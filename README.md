@@ -2,20 +2,22 @@
 
 Production-style quantitative finance project built on live GOOG option chains.
 Covers the full quant workflow: data ingestion → IV extraction → vol surface
-calibration → American option pricing → model validation → interactive dashboard.
+calibration → American option pricing → delta hedging → portfolio risk analytics →
+model validation — with a 6-tab interactive dashboard.
 
 **[Live Dashboard →](https://options-pricing-hedging-uvtsfcmrgeofhuvhg6qg83.streamlit.app)**
-*(replace with your Streamlit Cloud URL after deployment)*
 
 ---
 
-## Key Results
+## Key Results (April 3, 2026)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| CRR bid-ask hit rate | **81.1%** | April 1 stressed market (tariff selloff) |
-| CRR MAE | **$0.30** | vs $3.66 before weighted SVI fix |
-| CRR mean error | **−$0.01** | Near-zero systematic bias |
+| CRR bid-ask hit rate | **94.4%** | 177 options, post-tariff-selloff market |
+| CRR MAE | **$0.201** | Mean absolute error vs market mid |
+| CRR mean error | **−$0.016** | Near-zero systematic bias |
+| BSM bid-ask hit rate | 85.9% | European model — underprices American puts |
+| LSM bid-ask hit rate | 62.7% | Monte Carlo simulation noise widens errors |
 | Hedge variance reduction | **99.8%** | Dynamic vs unhedged, 200 paths |
 | Test suite | **167 passing** | 6 test files, 0 failures |
 
@@ -50,7 +52,7 @@ options-pricing-hedging/
 │       └── metrics.py         ← MAE, MAPE, bid-ask hit rate, vol risk premium
 │
 ├── dashboard/
-│   └── app.py                 ← 6-tab Streamlit dashboard
+│   └── app.py                 ← 6-tab Streamlit dashboard (~1600 lines)
 │
 ├── tests/
 │   ├── test_black_scholes.py  ← 30 tests: put-call parity, Greeks, known values
@@ -178,32 +180,46 @@ variance space preserves calendar no-arbitrage.
 
 ## Validation Results
 
-### Normal market — March 28, 2026
-| Model | Hit Rate | MAE | Mean Error |
-|-------|----------|-----|-----------|
-| BSM (European) | 59.3% | $0.25 | −$0.22 |
-| CRR (American) | **74.7%** | **$0.23** | **−$0.02** |
+### Three-date progression — iterative model improvements
 
-### Stressed market — April 1, 2026 (tariff selloff)
-| Model | Hit Rate | MAE | Mean Error |
-|-------|----------|-----|-----------|
-| BSM (European) | 66.9% | $0.43 | −$0.21 |
-| CRR (American) | **81.1%** | **$0.30** | **−$0.01** |
+| Date | Market | CRR Hit Rate | CRR MAE | Key improvement |
+|------|--------|-------------|---------|----------------|
+| March 28, 2026 | Normal | 74.7% | $0.23 | American-aware IV extraction |
+| April 1, 2026 | Stressed (tariff selloff) | 81.1% | $0.30 | Weighted SVI + minimum weight floor |
+| April 3, 2026 | Post-selloff (live) | **94.4%** | **$0.20** | System running on stable data |
 
-Stressed market result is stronger because the weighted SVI with minimum weight
-floor correctly captures left skew even when OTM bid-ask spreads are $3-5 wide.
+### April 3, 2026 — current live results
 
-### Volatility Risk Premium (GOOG)
-ATM IV consistently 5-12pp above realised vol across all tenors — options are
-expensive relative to what GOOG actually does. Positive VRP is the normal equity
-market result. Sellers of volatility earn this premium on average.
+| Model | Hit Rate | MAE | Mean Error | MAPE |
+|-------|----------|-----|-----------|------|
+| CRR (American) | **94.4%** | **$0.201** | −$0.016 | **1.3%** |
+| BSM (European) | 85.9% | $0.283 | −$0.207 | 1.6% |
+| LSM (Monte Carlo) | 62.7% | $0.397 | −$0.345 | 2.2% |
 
-### Hedge Effectiveness
+LSM underperforms CRR due to Monte Carlo sampling variance (M=5,000 paths,
+±$0.20–0.40 noise). CRR is the production workhorse for American options.
+
+### Volatility Risk Premium (April 3, 2026)
+
+| Expiry | Days | ATM IV | Realised Vol | VRP (pp) |
+|--------|------|--------|-------------|---------|
+| 2026-04-10 | 7 | 29.1% | 46.0% | **−16.9** |
+| 2026-05-01 | 28 | 36.9% | 31.7% | +5.1 |
+| 2026-06-18 | 76 | 35.0% | 25.5% | +9.5 |
+| 2026-09-18 | 168 | 35.2% | 27.5% | +7.7 |
+| 2027-03-19 | 350 | 35.4% | 29.9% | +5.5 |
+
+7-day negative VRP (−16.9pp): the market underpriced near-term vol during the
+tariff selloff — realised vol of 46% exceeded the 29% implied. All other tenors
+show the typical equity VRP: implied vol exceeds realised by 5–10pp.
+
+### Hedge Effectiveness (April 3, 2026)
+
 | Strategy | P&L Std Dev | Variance Reduction |
 |----------|-------------|-------------------|
-| Unhedged | $27.34 | 0% |
-| Static (delta₀, never rebalance) | $15.85 | 66.4% |
-| Dynamic (daily rebalance) | $1.12 | **99.8%** |
+| Unhedged | $26.43 | 0% |
+| Static (delta₀, never rebalance) | $15.35 | 66.3% |
+| Dynamic (daily rebalance) | $1.07 | **99.8%** |
 
 ---
 
