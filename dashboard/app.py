@@ -544,13 +544,10 @@ with tab2:
             # ── Theta Surface ─────────────────────────────────────────────────
             st.subheader("Theta Surface — Daily Decay across Strike & Time")
             st.markdown(
-                "Absolute daily time decay (|Theta| $/day) plotted across "
-                "**log-moneyness** and **days to expiry** simultaneously — "
-                "calls on the left, puts on the right. "
-                "Surface **peaks = highest decay** at near-expiry ATM options. "
+                "How much does each option lose per day? "
+                "Calls on the left, puts on the right. "
                 "**Red = fastest decay · Green = slowest.** "
-                "Calls and puts are nearly identical for GOOG (no dividend) — "
-                "the small difference comes from interest rate effects on rho."
+                "The spike at ATM near-expiry is where short options bleed the most."
             )
 
             # ── build theta grid: 50x50 for smooth surface ────────────────────
@@ -608,13 +605,9 @@ with tab2:
                 ))
                 _f.update_layout(
                     title=dict(
-                        text=(
-                            f"{option_label} — Theta Surface  "
-                            f"(S={spot:.2f}, σ={sigma:.0%}, "
-                            f"up to {ttm_days}d)"
-                        ),
+                        text=f"{option_label} — Theta Surface",
                         x=0.5,
-                        font=dict(size=15),
+                        font=dict(size=14),
                     ),
                     scene=dict(
                         xaxis=dict(
@@ -661,13 +654,10 @@ with tab2:
                 )
 
             st.caption(
-                f"|Theta| = absolute daily time decay in dollars. "
-                f"Surface peaks at ATM (log-moneyness=0) near expiry — "
-                f"the sharpest spike is where short options bleed the most. "
-                f"S=${spot:.2f}, σ={sigma:.0%}, r={r:.1%}, "
-                f"up to {ttm_days} days. "
-                "Hover over the surface to see exact values. "
-                "Drag to rotate · Scroll to zoom."
+                f"S=\\${spot:.2f}, σ={sigma:.0%}, r={r:.1%}, up to {ttm_days} days. "
+                "Calls and puts are nearly identical (no dividend) — "
+                "the small difference comes from interest rate effects. "
+                "Drag to rotate · Scroll to zoom · Hover for exact values."
             )
 
 
