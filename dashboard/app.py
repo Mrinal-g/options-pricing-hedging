@@ -268,6 +268,10 @@ with tab1:
                         tickvals=[7/365, 30/365, 90/365, 180/365, 365/365],
                         ticktext=["7d", "30d", "90d", "180d", "1y"],
                     ),
+                    camera=dict(
+                        eye=dict(x=1.5, y=-1.7, z=1.0),
+                        up=dict(x=0, y=0, z=1),
+                    ),
                 ),
                 margin=dict(l=0, r=0, t=40, b=0),
             )
@@ -628,9 +632,9 @@ with tab2:
                                        font=dict(size=11)),
                             tickfont=dict(size=10),
                         ),
-                        # Camera: slightly elevated, showing full spike + flat region
+                        # Camera: elevated 3/4 view — spike at near-expiry ATM is the focal point
                         camera=dict(
-                            eye=dict(x=-1.6, y=-1.8, z=1.1),
+                            eye=dict(x=-1.4, y=-1.5, z=1.4),
                             up=dict(x=0, y=0, z=1),
                         ),
                         bgcolor="rgba(0,0,0,0)",
@@ -688,11 +692,13 @@ with tab3:
     else:
         # ── headline result metrics ───────────────────────────────────────────
         if "in_spread_crr" in options_df.columns and "in_spread_bsm" in options_df.columns:
-            _h1, _h2, _h3, _h4 = st.columns(4)
+            _h1, _h2, _h3, _h4, _h5, _h6 = st.columns(6)
             _crr_hit = options_df["in_spread_crr"].mean() * 100
             _bsm_hit = options_df["in_spread_bsm"].mean() * 100
+            _lsm_hit = options_df["in_spread_lsm"].mean() * 100 if "in_spread_lsm" in options_df.columns else None
             _crr_mae = options_df["err_crr"].abs().mean() if "err_crr" in options_df.columns else None
             _bsm_mae = options_df["err_bsm"].abs().mean() if "err_bsm" in options_df.columns else None
+            _lsm_mae = options_df["err_lsm"].abs().mean() if "err_lsm" in options_df.columns else None
             _crr_mape = options_df["ape_crr"].mean() if "ape_crr" in options_df.columns else None
             _n = len(options_df)
             _h1.metric(
@@ -706,19 +712,33 @@ with tab3:
                 help="BSM underprices puts (European model on American options) — expected"
             )
             _h3.metric(
+                "LSM Bid-Ask Hit Rate",
+                f"{_lsm_hit:.1f}%" if _lsm_hit is not None else "—",
+                help="LSM Monte Carlo — simulation noise widens errors vs CRR"
+            )
+            _h4.metric(
                 "CRR MAE",
                 f"${_crr_mae:.3f}" if _crr_mae else "—",
                 help="Mean absolute dollar error vs market mid price"
             )
-            _h4.metric(
+            _h5.metric(
+                "LSM MAE",
+                f"${_lsm_mae:.3f}" if _lsm_mae else "—",
+                help="LSM mean absolute error — higher than CRR due to simulation noise"
+            )
+            _h6.metric(
                 "Options tested",
                 str(_n),
                 help="Total number of options in the validation dataset"
             )
+            _lsm_msg = ""
+            if _lsm_hit is not None and _lsm_mae is not None:
+                _lsm_msg = f" LSM (Monte Carlo) hits {_lsm_hit:.1f}% (MAE \\${_lsm_mae:.3f})."
             st.success(
                 f"**CRR (American) prices {_crr_hit:.1f}% of options inside the bid-ask spread** — "
                 f"production quality for a vanilla options pricing engine. "
-                f"Mean absolute error: ${_crr_mae:.3f} per option."
+                f"Mean absolute error: \\${_crr_mae:.3f} per option."
+                f"{_lsm_msg}"
             )
             st.markdown("---")
 
@@ -871,7 +891,8 @@ with tab3:
                 st.dataframe(vrp_show, width="stretch")
                 st.caption(
                     "VRP (pp) = ATM IV − Realised Vol in percentage points.  "
-                    "Positive means the option market overestimated future volatility."
+                    "Positive means the option market overestimated future volatility.  "
+                    "VRP % = VRP as a fraction of ATM IV — how much of implied vol was 'risk premium'."
                 )
         else:
             st.info("Run `python refresh.py` first to generate spot history and IV data.")
@@ -1416,7 +1437,7 @@ with tab6:
             _gc4.metric("Net Theta",  f"{_pg['net_theta']:.3f}",
                         help="Positive = earning time decay each day.")
             _gc5.metric("$ Delta",    f"${_pg['dollar_delta']:.0f}",
-                        help="Stock to trade to be delta-neutral.")
+                        help="Dollar value of stock to buy/sell for delta neutrality (delta × spot).")
             _gc6.metric("$ Vega/1pt", f"${_pg['dollar_vega']:.2f}",
                         help="P&L for a 1 vol-point move.")
 
@@ -1431,8 +1452,8 @@ with tab6:
                 f"Net delta {_pg['net_delta']:.2f} — portfolio is {_delta_dir}. "
                 f"It is {_gamma_str}. "
                 f"Theta {_pg['net_theta']:.2f} — {_theta_dir} "
-                f"${_theta_amt:.2f}/day in time decay. "
-                f"To delta-hedge: {_hedge_verb} ${_hedge_amt:.0f} of {_ticker_name} stock."
+                f"\\${_theta_amt:.2f}/day in time decay. "
+                f"To delta-hedge: {_hedge_verb} \\${_hedge_amt:.0f} of {_ticker_name} stock."
             )
 
         st.markdown("---")
@@ -1592,8 +1613,8 @@ with tab6:
                 _r4.metric("P&L Std Dev", f"${var_result['pnl_std']:.2f}")
                 st.caption(
                     f"Based on {var_result['n_scenarios']} daily returns since 2024-01-01. "
-                    f"CVaR ${var_result['cvar_horizon']:.2f} > VaR ${var_result['var_horizon']:.2f} "
-                    f"indicates fat tails — the worst days are significantly worse than the threshold."
+                    f"CVaR (\\${var_result['cvar_horizon']:.2f}) > VaR (\\${var_result['var_horizon']:.2f}) "
+                    f"indicates fat tails — the average loss on the worst days far exceeds the VaR threshold."
                 )
         else:
             st.info("Run `python refresh.py` to generate spot history for VaR.")
