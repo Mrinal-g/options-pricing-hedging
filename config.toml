@@ -1,0 +1,14 @@
+ticker = "GOOG"
+
+history_start = "2024-01-01"
+history_end = "today"
+
+risk_free_rate = 0.0371
+dividend_yield = 0.0
+
+min_bid = 0.05
+min_mid = 0.05
+max_spread_ratio = 0.50
+
+strike_lower_multiplier = 0.85
+strike_upper_multiplier = 1.15

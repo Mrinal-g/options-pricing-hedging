@@ -1,0 +1,10 @@
+stage,rows_remaining,rows_removed,pct_removed
+raw,596,0,0.0
+missing_critical,596,0,0.0
+min_bid_mid,524,72,12.08
+ask_gt_bid,523,1,0.17
+positive_ttm,523,0,0.0
+open_interest,479,44,7.38
+strike_band,182,297,49.83
+spread_ratio,182,0,0.0
+staleness,181,1,0.17

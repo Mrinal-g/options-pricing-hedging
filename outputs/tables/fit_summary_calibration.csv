@@ -1,0 +1,4 @@
+model,mean_err,mae,rmse,median_abs_err,max_abs_err,mean_pct_err,mape,bid_ask_hit_%
+BSM (European),-0.1935,0.2433,0.3494,0.1412,0.8701,-0.91,1.5,80.6
+CRR (American),-0.0453,0.1589,0.2369,0.1021,0.8063,-0.35,1.15,90.3
+LSM (American),-0.3384,0.3456,0.5227,0.1779,1.6869,-2.01,2.08,61.3

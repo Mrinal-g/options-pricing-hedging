@@ -1,0 +1,6 @@
+expiration,days_to_expiry,atm_iv,rv_window,rv_matched,vrp,vrp_pct
+2026-04-10,7,0.2905,5d realised vol,0.4595,-0.169,-36.78
+2026-05-01,28,0.3685,21d realised vol,0.3173,0.0511,16.11
+2026-06-18,76,0.3499,63d realised vol,0.2548,0.0951,37.33
+2026-09-18,168,0.3519,126d realised vol,0.2753,0.0765,27.8
+2027-03-19,350,0.3541,252d realised vol,0.299,0.0551,18.43

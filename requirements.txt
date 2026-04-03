@@ -1,0 +1,28 @@
+# Core numerical stack
+numpy
+pandas
+scipy
+matplotlib
+plotly
+
+# Market data
+yfinance
+curl_cffi
+
+# Surface fitting and serialisation
+scikit-learn
+joblib
+
+# Dashboard
+streamlit
+
+# Testing
+pytest
+pytest-cov
+
+# Utilities
+requests
+pandas-datareader
+statsmodels
+beautifulsoup4
+lxml
