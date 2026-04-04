@@ -1039,8 +1039,9 @@ with tab5:
     st.header("Delta Hedge Simulator")
     st.caption(
         "Sell an option, hedge the delta exposure daily by trading the stock, "
-        "and watch how P&L evolves. Four sections: single path, hedging frequency, "
-        "vol mismatch risk, and a three-strategy effectiveness benchmark."
+        "and watch how P&L evolves. Five sections: single path, hedging frequency, "
+        "vol mismatch risk, three-strategy effectiveness benchmark, "
+        "and a stress matrix combining vol mismatch with transaction costs."
     )
 
     options_df = load_options()
@@ -1326,6 +1327,106 @@ with tab5:
     st.caption(
         "**Var Reduction %** = variance removed vs unhedged baseline. "
         "Dynamic should be highest. If static beats dynamic, hedging frequency is too low."
+    )
+
+    # ── hedge stress matrix ───────────────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("Hedge Stress Matrix — Vol Mismatch × Transaction Costs")
+    st.markdown(
+        "Real desks face **two simultaneous risks**: realised vol differing from implied vol, "
+        "and transaction costs eroding hedge P&L. This matrix shows dynamic hedge mean P&L "
+        "at each (realised vol, transaction cost) combination — **the honest test of whether "
+        "hedging is profitable after frictions.**"
+    )
+
+    _stress_cols = st.columns(3)
+    with _stress_cols[0]:
+        stress_sims = st.slider("Paths per cell", 50, 200, 100,
+                                step=50, key="stress_sims")
+    with _stress_cols[1]:
+        stress_seed = st.number_input("Stress seed", value=42,
+                                       step=1, key="stress_seed", format="%d")
+
+    # Define the grid
+    _rv_grid = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45]
+    _tc_grid = [0.0, 0.05, 0.10, 0.20]  # percent per trade
+
+    with st.spinner(f"Running {len(_rv_grid)}×{len(_tc_grid)} stress scenarios ({stress_sims} paths each)..."):
+        _stress_results = []
+        for _rv in _rv_grid:
+            _row = {}
+            for _tc in _tc_grid:
+                # Run batch of simulations
+                _pnls = []
+                for _sim_i in range(stress_sims):
+                    _sim = simulate_delta_hedge(
+                        S0=h_spot, K=h_strike, T=h_T, r=h_r,
+                        sigma_implied=h_sigma_imp,
+                        sigma_realised=_rv,
+                        option_type=h_otype, q=default_q,
+                        n_steps=252,
+                        transaction_cost_pct=_tc / 100,
+                        seed=int(stress_seed) + _sim_i,
+                    )
+                    _pnls.append(float(_sim["pnl_cumulative"].iloc[-1]))
+                _row[f"TC={_tc:.2f}%"] = np.mean(_pnls)
+            _stress_results.append(_row)
+
+    stress_df = pd.DataFrame(
+        _stress_results,
+        index=[f"{v:.0%}" for v in _rv_grid],
+    )
+    stress_df.index.name = "Realised Vol"
+
+    # Heatmap
+    fig_stress = go.Figure(data=go.Heatmap(
+        z=stress_df.values,
+        x=stress_df.columns.tolist(),
+        y=stress_df.index.tolist(),
+        colorscale=[
+            [0.0, "#B71C1C"],
+            [0.35, "#EF5350"],
+            [0.5, "#FFFFFF"],
+            [0.65, "#66BB6A"],
+            [1.0, "#1B5E20"],
+        ],
+        zmid=0,
+        text=[[f"${v:.2f}" for v in row] for row in stress_df.values],
+        texttemplate="%{text}",
+        textfont=dict(size=12),
+        colorbar=dict(title="Mean P&L ($)"),
+        hovertemplate=(
+            "Realised Vol: %{y}<br>"
+            "Transaction Cost: %{x}<br>"
+            "Mean P&L: $%{z:.2f}<extra></extra>"
+        ),
+    ))
+    fig_stress.add_hline(
+        y=f"{h_sigma_imp:.0%}",
+        line_dash="dot", line_color="orange", line_width=2,
+        annotation_text="Implied vol",
+        annotation_position="top right",
+    )
+    fig_stress.update_layout(
+        title=f"Dynamic Hedge Mean P&L — Short {h_otype.capitalize()} (K={h_strike}, σ_imp={h_sigma_imp:.0%})",
+        xaxis_title="Transaction Cost (% per trade)",
+        yaxis_title="Realised Volatility",
+        height=420,
+        yaxis=dict(autorange="reversed"),
+    )
+    st.plotly_chart(fig_stress, width="stretch")
+
+    st.dataframe(
+        stress_df.style
+        .format("${:.2f}")
+        .background_gradient(cmap="RdYlGn", axis=None, vmin=stress_df.min().min(), vmax=stress_df.max().max()),
+        width="stretch",
+    )
+    st.caption(
+        "**Green = profitable** (realised vol < implied, low costs). "
+        "**Red = losing money** (realised vol > implied, high costs). "
+        "The diagonal from top-right to bottom-left is the break-even frontier. "
+        "At zero transaction cost, the hedge breaks even when realised vol = implied vol."
     )
 
 # ═════════════════════════════════════════════════════════════════════════════
