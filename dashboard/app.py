@@ -1171,16 +1171,16 @@ with tab5:
     st.subheader("Hedging Frequency Analysis")
     st.markdown(
         "More frequent rebalancing tightens the hedge but increases transaction costs. "
-        "Each bar shows the **distribution of final P&L** across 150 random paths."
+        "Each bar shows the **distribution of final P&L** across 100 random paths."
     )
 
-    with st.spinner("Running 150 × 4 simulations..."):
+    with st.spinner("Running 100 × 4 simulations..."):
         fa_df = run_frequency_analysis(
             S0=h_spot, K=h_strike, T=h_T, r=h_r,
             sigma_implied=h_sigma_imp,
             option_type=h_otype, q=default_q,
             frequencies=[4, 12, 52, 252],
-            n_sims=150, seed=int(h_seed),
+            n_sims=100, seed=int(h_seed),
         )
 
     fa_display = fa_df.reset_index()
@@ -1223,7 +1223,7 @@ with tab5:
             sigma_implied=h_sigma_imp,
             option_type=h_otype, q=default_q,
             realised_vols=[0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40],
-            n_sims=100, seed=int(h_seed),
+            n_sims=75, seed=int(h_seed),
         )
 
     fig_vm = go.Figure()
@@ -1341,14 +1341,14 @@ with tab5:
 
     _stress_cols = st.columns(3)
     with _stress_cols[0]:
-        stress_sims = st.slider("Paths per cell", 50, 200, 100,
-                                step=50, key="stress_sims")
+        stress_sims = st.slider("Paths per cell", 30, 200, 50,
+                                step=10, key="stress_sims")
     with _stress_cols[1]:
         stress_seed = st.number_input("Stress seed", value=42,
                                        step=1, key="stress_seed", format="%d")
 
-    # Define the grid
-    _rv_grid = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45]
+    # Define the grid — compact for speed, covers the key regimes
+    _rv_grid = [0.15, 0.25, 0.30, 0.35, 0.45]
     _tc_grid = [0.0, 0.05, 0.10, 0.20]  # percent per trade
 
     with st.spinner(f"Running {len(_rv_grid)}×{len(_tc_grid)} stress scenarios ({stress_sims} paths each)..."):
@@ -1364,7 +1364,7 @@ with tab5:
                         sigma_implied=h_sigma_imp,
                         sigma_realised=_rv,
                         option_type=h_otype, q=default_q,
-                        n_steps=252,
+                        n_steps=126,
                         transaction_cost_pct=_tc / 100,
                         seed=int(stress_seed) + _sim_i,
                     )
