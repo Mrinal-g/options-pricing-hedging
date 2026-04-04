@@ -1401,18 +1401,24 @@ with tab5:
             "Mean P&L: $%{z:.2f}<extra></extra>"
         ),
     ))
-    fig_stress.add_hline(
-        y=f"{h_sigma_imp:.0%}",
-        line_dash="dot", line_color="orange", line_width=2,
-        annotation_text="Implied vol",
-        annotation_position="top right",
-    )
+
+    # Mark the implied vol row in y-axis labels
+    _imp_label = f"{h_sigma_imp:.0%}"
+    _y_labels = [f"{v:.0%}" for v in _rv_grid]
+    _y_labels_annotated = [
+        f"{l}  ◄ implied" if l == _imp_label else l for l in _y_labels
+    ]
+
     fig_stress.update_layout(
         title=f"Dynamic Hedge Mean P&L — Short {h_otype.capitalize()} (K={h_strike}, σ_imp={h_sigma_imp:.0%})",
         xaxis_title="Transaction Cost (% per trade)",
         yaxis_title="Realised Volatility",
+        yaxis=dict(
+            tickvals=_y_labels,
+            ticktext=_y_labels_annotated,
+            autorange="reversed",
+        ),
         height=420,
-        yaxis=dict(autorange="reversed"),
     )
     st.plotly_chart(fig_stress, width="stretch")
 
